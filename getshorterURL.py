@@ -12,18 +12,20 @@
 """
 
 import webapp
+import csv
+import urllib.parse
 
 
-
-class contentApp (webapp.webApp):
+class getshorterURLApp (webapp.webApp):
     """Simple web application for managing content.
 
     Content is stored in a dictionary, which is intialized
     with the web content."""
 
     # Declare and initialize content
-    content = {}
-    contentReverse = {}
+    diccLong = {}
+    diccShort = {}
+    counter = 0;
     httpCode = " "
     htmlBody = " "
 
@@ -34,7 +36,8 @@ class contentApp (webapp.webApp):
         urlLong = None
         if request.split()[0] == "POST":
             method = "POST"
-            urlLong = request.split('\r\n\r\n')[1][4:] #de este modo
+            urlLong = request.split('\r\n\r\n')[1][4:] #de este modo quitamos url=
+            print(urlLong)
         elif request.split()[0] == "GET":
             method = "GET"
         else: # recibo otra cosa que no sea POST o GET
@@ -50,14 +53,15 @@ class contentApp (webapp.webApp):
         """
         global httpCode,htmlBody
         i = 0;
+        strhttp = "http://"
         method, resource, urlLong = resourceName
+
         if method != None:
             print("METODO: " + method)
         if resource != None:
             print("RESOURCE: " + resource)
         if urlLong != None:
             print("URLLONG: " + urlLong)
-        strhttp = "http://"
 
         # RECIBIMOS GET
         if method == "GET":
@@ -69,13 +73,14 @@ class contentApp (webapp.webApp):
 
             else:
                 resource = resource[1:]
-                print("nuevo resource: " + resource)
+                print("new resource: " + resource)
                 if str.isdigit(resource):
-                    if resource in self.contentReverse:
+                    resource = int(resource)
+                    if resource in self.diccShort:
                         # REDIRECCION A LA URL SIN ACORTAR QUE ESTE DEFINIDA POR resource
                         httpCode = "301"
                         htmlBody = "<html><meta http-equiv= 'Refresh'" \
-                            + "content='0;url=" + self.contentReverse[resource] + "'>"
+                            + "content='0;url=" + self.diccShort[resource] + "'>"
                     else:
                         httpCode = "404 Not Found"
                         htmlBody = "<html><body> Recurso no disponible.</body></html>"
@@ -83,32 +88,30 @@ class contentApp (webapp.webApp):
                     httpCode = "404 Not Found"
                     htmlBody = "<html><body> Introduce un numero valido.</body></html>"
 
+        # RECIBIMOS POST
         elif method == "POST":
-            # RECIBIMOS POST
-            print(urlLong)
-            if urlLong in self.content:     #si el nombre del recurso esta en diccionario
-                print("POSTTTTTTTTTTT111111")
-                httpCode = "200 OK"         #quiere decir que ya hemos acortado esa URL y devolvemos la url acortada
-                htmlBody = "<html><body>" + self.content[urlLong] \
-                    + "</body></html>"
-            else:                           #si hay urlLong pero no esta en diccionario
-                if urlLong.find(strhttp,0,7) != -1: #si empieza por http://
-                    print("POSTTTTTTTTTTT222222222222")
-                    self.content[urlLong] = i
-                    self.contentReverse[i] = urlLong
-                    i = i + 1
-                    httpCode = "200 OK"
-                    htmlBody = "<html><body><a href=" + urlLong + ">" + urlLong + "</a></p></body></html>" \
-                        + "<html><body><a href=" + "'http://localhost:1234/'" + str(i) + ">http://localhost:1234/" + str(i) + "</a></p></body></html>"
+            if urlLong != None: #en el cuerpo del POST venia url=http...
+                #http%3A%2F%2F tenemos que adecuarlo a http://
+                if urllib.parse.unquote(urlLong[0:13]) == strhttp:
+                    urlLong = strhttp + urlLong[13:]
+                elif urllib.parse.unquote(urlLong[0:14]) == "https://":
+                    urlLong = "https://" + urlLong[14:]
                 else:
-                    print("POSTTTTTTTTTTT33333333")
-                    urlLong = strhttp + urlLong
-                    self.content[urlLong] = i
-                    self.contentReverse[i] = urlLong
-                    httpCode = "200 OK"
-                    htmlBody = "<html><body><a href=" + urlLong + ">" + urlLong + "</a></p></body></html>" \
-                        + "<html><body><a href=" + "'http://localhost:1234/'" + str(i) + ">http://localhost:1234/" + str(i) + "</a></p></body></html>"
-                    i = i + 1
+                    urlLong = "http://" + urlLong #si viene sin http o https
+# ****************************************************************************************************************************
+                if urlLong in self.diccLong:     #si la URL a acortar esta ya en diccionario ARREGLAR SALIDAAAAAAAAAAAAAAAAAAA
+                    print (urlLong + " YA ESTA EN EL DICCIONARIO")
+                    urlShort = self.diccLong[urlLong]
+                else:                           #si hay urlLong pero no esta en diccionario
+                        self.diccLong[urlLong] = self.counter
+                        print("CONTADOR: " + str(self.counter) + " URLsinacortar = " + urlLong)
+                        self.diccShort[self.counter] = urlLong
+
+                httpCode = "200 OK"
+                htmlBody = "<html><body><a href=" + urlLong + ">" + "URL sin acortar" + "</a></p></body></html>" \
+                            + "<html><body><a href=" + "'http://localhost:1234/'" + str(self.counter) \
+                            + ">http://localhost:1234/" + str(self.counter) + "</a></p></body></html>"
+                self.counter = self.counter + 1
         else:
             httpCode = "405 Method Not Allowed" #A request method is not supported gor the requuested resource
             hmtlBody = "Metodo no permitido"
@@ -116,4 +119,4 @@ class contentApp (webapp.webApp):
 
 
 if __name__ == "__main__":
-        testWebApp = contentApp("localhost", 1234)
+        testWebApp = getshorterURLApp("localhost", 1234)

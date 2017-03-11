@@ -14,6 +14,7 @@
 import webapp
 import csv
 import urllib.parse
+import os
 
 
 class getshorterURLApp (webapp.webApp):
@@ -28,6 +29,24 @@ class getshorterURLApp (webapp.webApp):
     counter = 0;
     httpCode = " "
     htmlBody = " "
+
+    def saveURL(self,urlLong,urlShort):
+        with open("data.csv", "a") as csvfile: #append para seguir guardando a continuacion del ultimo
+            writer = csv.writer(csvfile)
+            writer.writerow([int(urlShort)] + [urlLong])
+        return None
+
+    def readDicc(self,file):
+        with open('data.csv', 'r') as csvfile:
+            if os.stat('data.csv').st_size == 0: #si es igual a 0 el fichero esta vacio
+                print("EL FICHERO ESTA VACIO")
+            else:
+                reader = csv.reader(csvfile)
+                for row in reader: #siguiendo lo que hemos hecho, row[0] = urlshort y row[1] = urlLong
+                    self.diccLong[row[1]] = int(row[0])
+                    self.diccShort[int(row[0])] = row[1]
+                    self.counter = self.counter + 1
+        return None
 
     def parse(self, request):
         """Return the resource name (including /)"""
@@ -63,6 +82,8 @@ class getshorterURLApp (webapp.webApp):
         if urlLong != None:
             print("URLLONG: " + urlLong)
 
+        if len(self.diccLong) == 0: #inicializamos ambos diccionarios si no lo estan todavia leyendo filecsv
+            self.readDicc("data.csv")
         # RECIBIMOS GET
         if method == "GET":
             if resource == "/":
@@ -74,6 +95,7 @@ class getshorterURLApp (webapp.webApp):
             else:
                 resource = resource[1:]
                 print("new resource: " + resource)
+                print(self.diccShort)
                 if str.isdigit(resource):
                     resource = int(resource)
                     if resource in self.diccShort:
@@ -91,27 +113,30 @@ class getshorterURLApp (webapp.webApp):
         # RECIBIMOS POST
         elif method == "POST":
             if urlLong != None: #en el cuerpo del POST venia url=http...
-                #http%3A%2F%2F tenemos que adecuarlo a http://
+                #http%3A%2F%2F contamos 13 con http y 14 con https, tenemos que adecuarlo a http://
                 if urllib.parse.unquote(urlLong[0:13]) == strhttp:
                     urlLong = strhttp + urlLong[13:]
                 elif urllib.parse.unquote(urlLong[0:14]) == "https://":
                     urlLong = "https://" + urlLong[14:]
                 else:
                     urlLong = "http://" + urlLong #si viene sin http o https
-# ****************************************************************************************************************************
-                if urlLong in self.diccLong:     #si la URL a acortar esta ya en diccionario ARREGLAR SALIDAAAAAAAAAAAAAAAAAAA
+                print(urlLong)
+                print(self.diccLong)
+                if urlLong in self.diccLong:     #si la URL a acortar esta ya en diccionario
                     print (urlLong + " YA ESTA EN EL DICCIONARIO")
                     urlShort = self.diccLong[urlLong]
                 else:                           #si hay urlLong pero no esta en diccionario
                         self.diccLong[urlLong] = self.counter
                         print("CONTADOR: " + str(self.counter) + " URLsinacortar = " + urlLong)
                         self.diccShort[self.counter] = urlLong
+                        urlShort = self.counter
+                        self.saveURL(urlLong,urlShort)
+                        self.counter = self.counter + 1
 
                 httpCode = "200 OK"
-                htmlBody = "<html><body><a href=" + urlLong + ">" + "URL sin acortar" + "</a></p></body></html>" \
-                            + "<html><body><a href=" + "'http://localhost:1234/'" + str(self.counter) \
-                            + ">http://localhost:1234/" + str(self.counter) + "</a></p></body></html>"
-                self.counter = self.counter + 1
+                htmlBody = "<html><body>URL SIN ACORTAR: <a href=" + urlLong + ">" + urlLong + "</a></p></body></html>" \
+                            + "<html><body>URL ACORTADA: <a href=" + "'http://localhost:1234/" + str(urlShort) \
+                            + "'>http://localhost:1234/" + str(urlShort) + "</a></p></body></html>"
         else:
             httpCode = "405 Method Not Allowed" #A request method is not supported gor the requuested resource
             hmtlBody = "Metodo no permitido"

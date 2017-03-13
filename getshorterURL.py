@@ -87,6 +87,7 @@ class getshorterURLApp (webapp.webApp):
                 htmlBody = "<html><body> Introduce una URL que desees acortar" \
                      + "<br><form method='POST' action=''>Contenido: <input type='text' name='url'><br>" \
                      + "<input type='submit' value='Enviar'></form></body></html>"
+                htmlBody = htmlBody + "<html><p>URLs guardadas: " + str(self.diccLong) + "</p></html>"
 
             else:
                 resource = resource[1:]
@@ -113,7 +114,7 @@ class getshorterURLApp (webapp.webApp):
                 elif urllib.parse.unquote(urlLong[0:14]) == "https://":
                     urlLong = "https://" + urlLong[14:]
                 else:
-                    urlLong = "http://" + urlLong #si viene sin http o https
+                    urlLong = "http://" + urlLong #si viene sin http o https"""
                 if urlLong in self.diccLong:     #si la URL a acortar esta ya en diccionario
                     print (urlLong + " YA ESTA EN EL DICCIONARIO")
                     urlShort = self.diccLong[urlLong]

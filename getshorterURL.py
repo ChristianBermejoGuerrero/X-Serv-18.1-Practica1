@@ -31,12 +31,16 @@ class getshorterURLApp (webapp.webApp):
     htmlBody = " "
 
     def saveURL(self,urlLong,urlShort):
-        with open("data.csv", "a") as csvfile: #append para seguir guardando a continuacion del ultimo
+        """ Save each URL into csv file (append)"""
+        with open("data.csv", "a") as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow([int(urlShort)] + [urlLong])
         return None
 
     def readDicc(self,file):
+        """ Read csv file to creat our dictionarys.
+        The file 'data.csv' must be created before executing"""
+
         with open('data.csv', 'r') as csvfile:
             if os.stat('data.csv').st_size == 0: #si es igual a 0 el fichero esta vacio
                 print("EL FICHERO ESTA VACIO")
@@ -56,7 +60,6 @@ class getshorterURLApp (webapp.webApp):
         if request.split()[0] == "POST":
             method = "POST"
             urlLong = request.split('\r\n\r\n')[1][4:] #de este modo quitamos url=
-            print(urlLong)
         elif request.split()[0] == "GET":
             method = "GET"
         else: # recibo otra cosa que no sea POST o GET
@@ -75,13 +78,6 @@ class getshorterURLApp (webapp.webApp):
         strhttp = "http://"
         method, resource, urlLong = resourceName
 
-        if method != None:
-            print("METODO: " + method)
-        if resource != None:
-            print("RESOURCE: " + resource)
-        if urlLong != None:
-            print("URLLONG: " + urlLong)
-
         if len(self.diccLong) == 0: #inicializamos ambos diccionarios si no lo estan todavia leyendo filecsv
             self.readDicc("data.csv")
         # RECIBIMOS GET
@@ -94,8 +90,6 @@ class getshorterURLApp (webapp.webApp):
 
             else:
                 resource = resource[1:]
-                print("new resource: " + resource)
-                print(self.diccShort)
                 if str.isdigit(resource):
                     resource = int(resource)
                     if resource in self.diccShort:
@@ -120,14 +114,11 @@ class getshorterURLApp (webapp.webApp):
                     urlLong = "https://" + urlLong[14:]
                 else:
                     urlLong = "http://" + urlLong #si viene sin http o https
-                print(urlLong)
-                print(self.diccLong)
                 if urlLong in self.diccLong:     #si la URL a acortar esta ya en diccionario
                     print (urlLong + " YA ESTA EN EL DICCIONARIO")
                     urlShort = self.diccLong[urlLong]
                 else:                           #si hay urlLong pero no esta en diccionario
                         self.diccLong[urlLong] = self.counter
-                        print("CONTADOR: " + str(self.counter) + " URLsinacortar = " + urlLong)
                         self.diccShort[self.counter] = urlLong
                         urlShort = self.counter
                         self.saveURL(urlLong,urlShort)
@@ -136,7 +127,7 @@ class getshorterURLApp (webapp.webApp):
                 httpCode = "200 OK"
                 htmlBody = "<html><body>URL SIN ACORTAR: <a href=" + urlLong + ">" + urlLong + "</a></p></body></html>" \
                             + "<html><body>URL ACORTADA: <a href=" + "'http://localhost:1234/" + str(urlShort) \
-                            + "'>http://localhost:1234/" + str(urlShort) + "</a></p></body></html>"
+                            + "'>" + str(urlShort) + "</a></p></body></html>"
         else:
             httpCode = "405 Method Not Allowed" #A request method is not supported gor the requuested resource
             hmtlBody = "Metodo no permitido"
@@ -144,4 +135,7 @@ class getshorterURLApp (webapp.webApp):
 
 
 if __name__ == "__main__":
+    try:
         testWebApp = getshorterURLApp("localhost", 1234)
+    except KeyboardInterrupt:
+        print ("\nClosing binded socket")
